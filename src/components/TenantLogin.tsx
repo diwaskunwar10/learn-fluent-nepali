@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,15 +13,25 @@ interface TenantLoginProps {
 }
 
 const TenantLogin: React.FC<TenantLoginProps> = ({ initialSlug = "" }) => {
-  const [step, setStep] = useState(initialSlug ? 1 : 0);
-  const [tenantSlug, setTenantSlug] = useState(initialSlug);
+  const { login, setTenantSlug: updateTenantSlug } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Check for stored tenant slug in localStorage
+  const storedTenantSlug = localStorage.getItem("nepali_app_client") || initialSlug;
+
+  const [step, setStep] = useState(storedTenantSlug ? 1 : 0);
+  const [tenantSlug, setTenantSlug] = useState(storedTenantSlug || "");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login, setTenantSlug: updateTenantSlug } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
+  // Set the tenant slug in context if it's available in localStorage
+  useEffect(() => {
+    if (storedTenantSlug) {
+      updateTenantSlug(storedTenantSlug);
+    }
+  }, [storedTenantSlug, updateTenantSlug]);
 
   const handleTenantSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

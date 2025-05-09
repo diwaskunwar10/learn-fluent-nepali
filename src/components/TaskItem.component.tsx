@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Task, submitTaskAnswer } from '../api/taskService';
-import{ uploadAudioFile, FileUploadResponse} from '../api/fileService';
+import { uploadAudioFile, FileUploadResponse } from '../api/fileService';
 import { useRecorder } from '../hooks/useAudioRecorder';
 
 interface TaskItemProps {
@@ -92,8 +92,8 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onAnswerSubmitted, onNext, sc
       setIsUploading(true);
       setUploadProgress(0);
 
-      // Use the uploadAudioFile service
-      const fileInfo = await uploadAudioFile(audioBlob, user);
+      // Use the uploadAudioFile service with the default 'recordings' folder
+      const fileInfo = await uploadAudioFile(audioBlob, 'recordings');
       console.log('File info returned from uploadAudioFile:', fileInfo);
 
       // Set progress to 50% after upload completes

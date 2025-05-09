@@ -1,6 +1,5 @@
-import { UserData } from "../types/User";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/v1";
+import { BaseService } from "./baseService";
+import { ApiCallbacks } from "./httpBase";
 
 /**
  * Interface for file upload response
@@ -121,178 +120,134 @@ export interface PaginatedTaskSets {
 }
 
 /**
- * Fetch a task set by ID with options for field filtering
- * @param taskSetId The ID of the task set to fetch
- * @param user The authenticated user data
- * @param options Optional request options for filtering fields
- * @returns The task set data
+ * Interface for test scores response
  */
-export const fetchTaskSet = async (
-  taskSetId: string,
-  user: UserData,
-  options?: TaskSetRequestOptions
-): Promise<TaskSet> => {
-  try {
-    // Use the new POST endpoint with request body for more control
-    const response = await fetch(`${API_URL}/tasks/task-set`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `${user.tokenType} ${user.token}`
-      },
-      body: JSON.stringify({
+export interface TestScoresResponse {
+  task_set_id: string;
+  scores: {
+    task_id: string;
+    score: number;
+    max_score: number;
+    is_correct: boolean;
+  }[];
+  total_score: number;
+  max_score: number;
+}
+
+/**
+ * Task service for handling task operations
+ */
+class TaskService extends BaseService {
+  /**
+   * Fetch a task set by ID with options for field filtering
+   * @param taskSetId The ID of the task set to fetch
+   * @param options Optional request options for filtering fields
+   * @param callbacks Optional callbacks for success, error, and finally
+   * @returns Promise with the task set data
+   */
+  async fetchTaskSet(
+    taskSetId: string,
+    options?: TaskSetRequestOptions,
+    callbacks?: ApiCallbacks<TaskSet>
+  ): Promise<TaskSet> {
+    return this.post<TaskSet>(
+      '/tasks/task-set',
+      {
         set_id: taskSetId,
         include_tasks: options?.include_tasks || false,
         include_task_ids: true  // Always include task IDs for better loading
-        // fields has a default value in the backend
-        // task_fields was removed from the API
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch task set: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching task set:", error);
-    throw error;
-  }
-};
-
-/**
- * Fetch a single task by ID with options for field filtering
- * @param taskId The ID of the task to fetch
- * @param user The authenticated user data
- * @param options Optional request options for filtering fields
- * @returns The task data
- */
-export const fetchTask = async (
-  taskId: string,
-  user: UserData,
-  options?: TaskRequestOptions
-): Promise<Task> => {
-  try {
-    // Use the new POST endpoint with request body for more control
-    const response = await fetch(`${API_URL}/tasks/task`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `${user.tokenType} ${user.token}`
       },
-      body: JSON.stringify({
+      undefined,
+      callbacks
+    );
+  }
+
+  /**
+   * Fetch a single task by ID with options for field filtering
+   * @param taskId The ID of the task to fetch
+   * @param options Optional request options for filtering fields
+   * @param callbacks Optional callbacks for success, error, and finally
+   * @returns Promise with the task data
+   */
+  async fetchTask(
+    taskId: string,
+    options?: TaskRequestOptions,
+    callbacks?: ApiCallbacks<Task>
+  ): Promise<Task> {
+    return this.post<Task>(
+      '/tasks/task',
+      {
         task_id: taskId,
         fields: options?.fields
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch task: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching task:", error);
-    throw error;
-  }
-};
-
-/**
- * Submit answers for a task set
- * @param taskSetId The ID of the task set
- * @param answers Array of task answers
- * @param user The authenticated user data
- * @returns The submission result
- */
-export const submitTaskAnswers = async (
-  taskSetId: string,
-  answers: TaskAnswer[],
-  user: UserData
-): Promise<TaskSubmissionResult> => {
-  try {
-    const response = await fetch(`${API_URL}/tasks/task-set/submit`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `${user.tokenType} ${user.token}`
       },
-      body: JSON.stringify({
+      undefined,
+      callbacks
+    );
+  }
+
+  /**
+   * Submit answers for a task set
+   * @param taskSetId The ID of the task set
+   * @param answers Array of task answers
+   * @param callbacks Optional callbacks for success, error, and finally
+   * @returns Promise with the submission result
+   */
+  async submitTaskAnswers(
+    taskSetId: string,
+    answers: TaskAnswer[],
+    callbacks?: ApiCallbacks<TaskSubmissionResult>
+  ): Promise<TaskSubmissionResult> {
+    return this.put<TaskSubmissionResult>(
+      '/tasks/task-set/submit',
+      {
         set_id: taskSetId,
         answers: answers
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to submit task answers: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error submitting task answers:", error);
-    throw error;
-  }
-};
-
-/**
- * Submit an answer for a single task
- * @param taskId The ID of the task
- * @param answer The user's answer
- * @param user The authenticated user data
- * @param taskType Optional task type
- * @returns The submission result for the single task
- */
-export const submitTaskAnswer = async (
-  taskId: string,
-  answer: string | number | boolean,
-  user: UserData,
-  taskType?: string
-): Promise<any> => {
-  try {
-    const response = await fetch(`${API_URL}/tasks/task/submit`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `${user.tokenType} ${user.token}`
       },
-      body: JSON.stringify({
+      undefined,
+      callbacks
+    );
+  }
+
+  /**
+   * Submit an answer for a single task
+   * @param taskId The ID of the task
+   * @param answer The user's answer
+   * @param taskType Optional task type
+   * @param callbacks Optional callbacks for success, error, and finally
+   * @returns Promise with the submission result for the single task
+   */
+  async submitTaskAnswer(
+    taskId: string,
+    answer: string | number | boolean,
+    taskType?: string,
+    callbacks?: ApiCallbacks<any>
+  ): Promise<any> {
+    return this.post<any>(
+      '/tasks/task/submit',
+      {
         task_id: taskId,
         answer: answer,
         task_type: taskType
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to submit task answer: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error submitting task answer:", error);
-    throw error;
+      },
+      undefined,
+      callbacks
+    );
   }
-};
 
-
-
-/**
- * Fetch user's task sets with pagination
- * @param user The authenticated user data
- * @param limit Maximum number of records to return (default: 10)
- * @param skip Number of records to skip (default: 0)
- * @param fields Optional fields to retrieve
- * @returns Paginated list of task sets
- */
-export const fetchUserTaskSets = async (
-  user: UserData,
-  limit: number = 10,
-  skip: number = 0,
-  fields?: string[]
-): Promise<PaginatedTaskSets> => {
-  try {
+  /**
+   * Fetch user's task sets with pagination
+   * @param limit Maximum number of records to return (default: 10)
+   * @param skip Number of records to skip (default: 0)
+   * @param fields Optional fields to retrieve
+   * @param callbacks Optional callbacks for success, error, and finally
+   * @returns Promise with paginated list of task sets
+   */
+  async fetchUserTaskSets(
+    limit: number = 10,
+    skip: number = 0,
+    fields?: string[],
+    callbacks?: ApiCallbacks<PaginatedTaskSets>
+  ): Promise<PaginatedTaskSets> {
     // Build query parameters
     const params = new URLSearchParams({
       limit: limit.toString(),
@@ -304,59 +259,51 @@ export const fetchUserTaskSets = async (
       fields.forEach(field => params.append('fields', field));
     }
 
-    const response = await fetch(`${API_URL}/tasks/user/task-sets?${params.toString()}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `${user.tokenType} ${user.token}`
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch user task sets: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching user task sets:", error);
-    throw error;
+    return this.get<PaginatedTaskSets>(
+      `/tasks/user/task-sets?${params.toString()}`,
+      undefined,
+      callbacks
+    );
   }
-};
 
-/**
- * Fetch test scores for a task set
- * @param taskSetId The ID of the task set
- * @param user The authenticated user data
- * @returns The test scores data
- */
-export const fetchTestScores = async (
-  taskSetId: string,
-  user: UserData
-): Promise<any> => {
-  try {
-    const response = await fetch(`${API_URL}/tasks/test_score?task_set_id=${taskSetId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `${user.tokenType} ${user.token}`
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch test scores: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    console.log('Test scores fetched:', data);
-    return data;
-  } catch (error) {
-    console.error("Error fetching test scores:", error);
-    throw error;
+  /**
+   * Fetch test scores for a task set
+   * @param taskSetId The ID of the task set
+   * @param callbacks Optional callbacks for success, error, and finally
+   * @returns Promise with the test scores data
+   */
+  async fetchTestScores(
+    taskSetId: string,
+    callbacks?: ApiCallbacks<TestScoresResponse>
+  ): Promise<TestScoresResponse> {
+    return this.get<TestScoresResponse>(
+      `/tasks/test_score?task_set_id=${taskSetId}`,
+      undefined,
+      callbacks
+    );
   }
-};
+}
 
+// Export a singleton instance
+export const taskService = new TaskService();
 
+// Export functions for backward compatibility
+export const fetchTaskSet = (taskSetId: string, _user: any, options?: TaskSetRequestOptions) =>
+  taskService.fetchTaskSet(taskSetId, options);
 
+export const fetchTask = (taskId: string, _user: any, options?: TaskRequestOptions) =>
+  taskService.fetchTask(taskId, options);
+
+export const submitTaskAnswers = (taskSetId: string, answers: TaskAnswer[], _user: any) =>
+  taskService.submitTaskAnswers(taskSetId, answers);
+
+export const submitTaskAnswer = (taskId: string, answer: string | number | boolean, _user: any, taskType?: string) =>
+  taskService.submitTaskAnswer(taskId, answer, taskType);
+
+export const fetchUserTaskSets = (_user: any, limit: number = 10, skip: number = 0, fields?: string[]) =>
+  taskService.fetchUserTaskSets(limit, skip, fields);
+
+export const fetchTestScores = (taskSetId: string, _user: any) =>
+  taskService.fetchTestScores(taskSetId);
 
 // fetch all taks of a user

@@ -1,5 +1,10 @@
-import { useAuth } from '@/context/AuthContext';
+import { BaseService } from "./baseService";
+import { ApiCallbacks, RequestOptions, httpClient } from "./httpBase";
+import { cacheManager } from "./cacheManager";
 
+/**
+ * Interface for task set filter parameters
+ */
 export interface TaskSetFilter {
   page: number;
   limit: number;
@@ -11,6 +16,9 @@ export interface TaskSetFilter {
   end_date?: string;
 }
 
+/**
+ * Interface for a task set
+ */
 export interface TaskSet {
   _id: string;
   user_id: string;
@@ -32,6 +40,9 @@ export interface TaskSet {
   };
 }
 
+/**
+ * Interface for task set response
+ */
 export interface TaskSetResponse {
   items: TaskSet[];
   total: number;
@@ -40,7 +51,9 @@ export interface TaskSetResponse {
   pages: number;
 }
 
-// Interface for the actual API response format
+/**
+ * Interface for the actual API response format
+ */
 export interface ApiTaskSetResponse {
   data: TaskSet[];
   meta: {
@@ -54,20 +67,21 @@ export interface ApiTaskSetResponse {
 }
 
 /**
- * Service for fetching task sets with filtering and pagination
+ * Task list service for handling task set operations
  */
-export const useTaskListService = () => {
-  const { user } = useAuth();
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/v1';
-
+class TaskListService extends BaseService {
   /**
    * Fetch task sets with filtering and pagination
+   * @param filter The filter parameters
+   * @param callbacks Optional callbacks for success, error, and finally
+   * @param options Optional request options for caching and cancellation
+   * @returns Promise with the task set response
    */
-  const fetchTaskSets = async (filter: TaskSetFilter): Promise<TaskSetResponse> => {
-    if (!user?.token) {
-      throw new Error('User not authenticated');
-    }
-
+  async fetchTaskSets(
+    filter: TaskSetFilter,
+    callbacks?: ApiCallbacks<ApiTaskSetResponse>,
+    options?: RequestOptions
+  ): Promise<TaskSetResponse> {
     try {
       // Build query parameters
       const queryParams = new URLSearchParams();
@@ -83,25 +97,11 @@ export const useTaskListService = () => {
         }
       });
 
-      const url = `${apiUrl}/tasks/task-sets/filtered?${queryParams.toString()}`;
+      const url = `/tasks/task-sets/filtered?${queryParams.toString()}`;
       console.log('Fetching task sets from:', url, 'with filter:', filter);
 
-      // Make API request
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'accept': 'application/json',
-          'Authorization': `Bearer ${user.token}`
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API error response:', errorData);
-        throw new Error(errorData.detail || `Failed to fetch task sets: ${response.status}`);
-      }
-
-      const apiResponse = await response.json() as ApiTaskSetResponse;
+      // Make API request with caching and cancellation options
+      const apiResponse = await this.get<ApiTaskSetResponse>(url, options, callbacks);
       console.log('API response data:', apiResponse);
 
       // Ensure the response has the expected structure
@@ -130,9 +130,43 @@ export const useTaskListService = () => {
       console.error('Error in fetchTaskSets:', error);
       throw error;
     }
-  };
+  }
+}
 
+/**
+ * Clear cache for a specific key
+ * @param cacheKey The cache key to clear
+ */
+class TaskListServiceWithCache extends TaskListService {
+  clearCache(cacheKey?: string): void {
+    if (cacheKey) {
+      cacheManager.delete(cacheKey);
+    } else {
+      // Clear all task list related cache entries
+      const allKeys = cacheManager.keys();
+      allKeys.forEach(key => {
+        if (key.startsWith('taskList:')) {
+          cacheManager.delete(key);
+        }
+      });
+    }
+  }
+}
+
+// Export a singleton instance
+export const taskListService = new TaskListServiceWithCache();
+
+/**
+ * Hook for using the task list service
+ * @returns The task list service methods
+ */
+export const useTaskListService = () => {
   return {
-    fetchTaskSets
+    fetchTaskSets: (
+      filter: TaskSetFilter,
+      callbacks?: ApiCallbacks<ApiTaskSetResponse>,
+      options?: RequestOptions
+    ) => taskListService.fetchTaskSets(filter, callbacks, options),
+    clearCache: (cacheKey?: string) => taskListService.clearCache(cacheKey)
   };
 };
